@@ -1,0 +1,110 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage[margin=1in]{geometry}
+
+% Increase vertical spacing between lines inside align/flalign and around math blocks
+\setlength{\jot}{12pt}
+\setlength{\abovedisplayskip}{16pt}
+\setlength{\belowdisplayskip}{16pt}
+\setlength{\abovedisplayshortskip}{12pt}
+\setlength{\belowdisplayshortskip}{12pt}
+
+\begin{document}
+
+% ==============================================================================
+% 1. GENERAL POISSON PROBABILITY MASS FUNCTION (PMF)
+% ==============================================================================
+\subsection*{1. General Poisson Probability Mass Function}
+\noindent Models the probability of observing an exact discrete count of Top-100 players ($y_c$) given a country's expected output rate ($\lambda_c$):
+\begin{flalign}
+&& P(Y_c = y_c \mid \lambda_c) &= \frac{\lambda_c^{y_c} e^{-\lambda_c}}{y_c!}, \qquad y_c \in \{0, 1, 2, \dots\}, \quad \lambda_c > 0
+\end{flalign}
+
+% ==============================================================================
+% 2. POISSON LOG-LINEAR MODEL DERIVATION
+% ==============================================================================
+\subsection*{2. Log-Linear Specification and Multiplicative Form}
+\noindent Links national structural inputs to the log of expected player output, then exponentiates both sides to guarantee strictly positive predictions ($\lambda_c > 0$):
+\begin{flalign}
+&& \log(\lambda_c) &= \mathbf{x}_c^\top \boldsymbol{\beta} = \beta_0 + \beta_1 \log(\text{Pop}_c) + \beta_2 \log(\text{GDP\_pc}_c) + \beta_3 \text{PartRate}_c + \beta_4 \text{InfraIndex}_c \\
+&& \lambda_c &= \exp\Big(\beta_0 + \beta_1 \log(\text{Pop}_c) + \beta_2 \log(\text{GDP\_pc}_c) + \beta_3 \text{PartRate}_c + \beta_4 \text{InfraIndex}_c\Big) \\
+&& \lambda_c &= e^{\beta_0} \cdot e^{\beta_1 \log(\text{Pop}_c)} \cdot e^{\beta_2 \log(\text{GDP\_pc}_c)} \cdot e^{\beta_3 \text{PartRate}_c} \cdot e^{\beta_4 \text{InfraIndex}_c} \\
+&& \lambda_c &= e^{\beta_0} \cdot (\text{Pop}_c)^{\beta_1} \cdot (\text{GDP\_pc}_c)^{\beta_2} \cdot e^{\beta_3 \text{PartRate}_c} \cdot e^{\beta_4 \text{InfraIndex}_c}
+\end{flalign}
+
+% ==============================================================================
+% 3. LIKELIHOOD, LOG-LIKELIHOOD, SUBSTITUTION & PARTIAL DERIVATIVES
+% ==============================================================================
+\subsection*{3. Maximum Likelihood Estimation (MLE) and First-Order Conditions}
+\noindent Combines all 39 independent country probabilities into a joint log-likelihood sum, substitutes $\mathbf{x}_c^\top \boldsymbol{\beta} = \sum_{k=0}^{4} x_{ck}\beta_k$, and sets partial derivatives to zero to solve for the optimal weights via IRLS:
+\begin{flalign}
+&& L(\boldsymbol{\beta}) &= \prod_{c=1}^{39} P(Y_c = y_c \mid \lambda_c) = \prod_{c=1}^{39} \frac{\lambda_c^{y_c} e^{-\lambda_c}}{y_c!} \\
+&& \ell(\boldsymbol{\beta}) = \log L(\boldsymbol{\beta}) &= \sum_{c=1}^{39} \log\left(\frac{\lambda_c^{y_c} e^{-\lambda_c}}{y_c!}\right) = \sum_{c=1}^{39} \Big[ y_c \log(\lambda_c) - \lambda_c - \log(y_c!) \Big] \\
+&& \ell(\boldsymbol{\beta}) &= \sum_{c=1}^{39} \Big[ y_c (\mathbf{x}_c^\top \boldsymbol{\beta}) - \exp(\mathbf{x}_c^\top \boldsymbol{\beta}) - \log(y_c!) \Big] \\
+&& \frac{\partial \ell(\boldsymbol{\beta})}{\partial \beta_j} &= \sum_{c=1}^{39} \left[ y_c x_{cj} - \exp(\mathbf{x}_c^\top \boldsymbol{\beta}) x_{cj} \right] = \sum_{c=1}^{39} (y_c - \lambda_c) x_{cj} = 0, \qquad j \in \{0, 1, 2, 3, 4\}
+\end{flalign}
+
+% ==============================================================================
+% 4. FINAL ESTIMATED POISSON LOG-LINEAR MODEL
+% ==============================================================================
+\subsection*{4. Fitted Global Poisson Regression Equation}
+\noindent Incorporates the converged Maximum Likelihood parameter estimates across the 39-country sample:
+\begin{flalign}
+&& \log(\hat{\lambda}_c) &= -0.8669 + 0.4020 \log(\text{Pop}_c) + 0.2323 \log(\text{GDP\_pc}_c) + 0.0930\,\text{PartRate}_c + 0.3149\,\text{InfraIndex}_c \\
+&& \hat{\lambda}_c &= e^{-0.8669} \cdot (\text{Pop}_c)^{0.4020} \cdot (\text{GDP\_pc}_c)^{0.2323} \cdot e^{0.0930\,\text{PartRate}_c} \cdot e^{0.3149\,\text{InfraIndex}_c}
+\end{flalign}
+
+% ==============================================================================
+% 5. SAMPLE CALCULATION: CZECH REPUBLIC (PREDICTION, RESIDUAL & PROBABILITIES)
+% ==============================================================================
+\subsection*{5. Sample Calculation: Czech Republic Prediction, Residual, and Tail Probability}
+\noindent Evaluates Czechia's expected player count ($\hat{\lambda}_{\text{CZE}}$), unexplained surplus ($r_{\text{CZE}}$), and the probability of observing 58 or more Top-100 players by chance:
+\begin{flalign}
+&& \log(\hat{\lambda}_{\text{CZE}}) &= -0.8669 + 0.4020(2.3514) + 0.2323(9.9075) + 0.0930(4.0390) + 0.3149(2.5575) = 3.5613 \\
+&& \hat{\lambda}_{\text{CZE}} &= e^{3.5613} = 35.21 \\
+&& r_{\text{CZE}} &= y_{\text{CZE}} - \hat{\lambda}_{\text{CZE}} = 58 - 35.21 = +22.79 \\
+&& P(Y_{\text{CZE}} = 58 \mid \hat{\lambda}_{\text{CZE}} = 35.21) &= \frac{(35.21)^{58} e^{-35.21}}{58!} \approx 0.00011 \quad (0.011\%) \\
+&& P(Y_{\text{CZE}} \ge 58 \mid \hat{\lambda}_{\text{CZE}} = 35.21) &= \sum_{k=58}^{\infty} \frac{(35.21)^{k} e^{-35.21}}{k!} \approx 0.00028 \quad (0.028\%)
+\end{flalign}
+
+% ==============================================================================
+% 6. COBB-DOUGLAS PRODUCTION FUNCTION
+% ==============================================================================
+\subsection*{6. Cobb-Douglas Production Function}
+\noindent Models national elite player output ($Y_c$) as a function of coaching labor ($L_c$), physical court capital ($K_c$), and Total Factor Productivity ($A$):
+\begin{flalign}
+&& Y_c &= A \, L_c^{\alpha} \, K_c^{\beta}
+\end{flalign}
+
+% ==============================================================================
+% 7. LOG-LINEARIZED COBB-DOUGLAS MODEL
+% ==============================================================================
+\subsection*{7. Log-Linearized Cobb-Douglas Specification}
+\noindent Transforms the multiplicative production function into a log-linear equation to estimate input elasticities ($\alpha, \beta$) via Poisson MLE:
+\begin{flalign}
+&& \log(\lambda_c) &= \log(A) + \alpha \log(L_c) + \beta \log(K_c)
+\end{flalign}
+
+% ==============================================================================
+% 8. FINAL ESTIMATED COBB-DOUGLAS MODEL & ISOQUANT EQUATION (A, ALPHA, BETA)
+% ==============================================================================
+\subsection*{8. Fitted Cobb-Douglas Frontier and Isoquant Curve Equation}
+\noindent Establishes the global production frontier ($\hat{A} = 0.1063$, $\hat{\alpha} = 0.2597$, $\hat{\beta} = 0.3916$) and solves for court capital $K(L)$ along any constant output contour $\bar{Y}$:
+\begin{flalign}
+&& \log(\hat{Y}_c) &= -2.2411 + 0.2597 \log(L_c) + 0.3916 \log(K_c) \\
+&& \hat{Y}_c &= e^{-2.2411} \, L_c^{0.2597} \, K_c^{0.3916} = 0.1063 \, L_c^{0.2597} \, K_c^{0.3916} \\
+&& K(L) &= \left( \frac{\bar{Y}}{0.1063 \, L^{0.2597}} \right)^{1/0.3916}
+\end{flalign}
+
+% ==============================================================================
+% 9. SAMPLE CALCULATION: CZECH REPUBLIC TOTAL FACTOR PRODUCTIVITY (TFP)
+% ==============================================================================
+\subsection*{9. Sample Calculation: Czech Republic Total Factor Productivity (TFP) Premium}
+\noindent Compares Czechia's actual output ($Y_{\text{CZE}} = 58$) against its Cobb-Douglas frontier prediction ($\hat{Y}_{\text{CZE}} = 42.66$) given $8{,}250$ coaches and $11{,}244$ courts:
+\begin{flalign}
+&& \hat{Y}_{\text{CZE}} &= 0.1063 \cdot (8250)^{0.2597} \cdot (11244)^{0.3916} = 42.66 \\
+&& A_{\text{CZE}} &= \frac{Y_{\text{CZE}}}{L_{\text{CZE}}^{\hat{\alpha}} K_{\text{CZE}}^{\hat{\beta}}} = \frac{58}{(8250)^{0.2597} (11244)^{0.3916}} = 0.1445 \\
+&& \text{TFP Relative Efficiency} &= \frac{A_{\text{CZE}}}{\hat{A}} = \frac{Y_{\text{CZE}}}{\hat{Y}_{\text{CZE}}} = \frac{58}{42.66} = 1.3596 \quad (+35.96\%)
+\end{flalign}
+
+\end{document}
